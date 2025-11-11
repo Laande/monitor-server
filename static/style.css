@@ -259,6 +259,10 @@ nav a.active {
     gap: 20px;
 }
 
+.services-grid:has(.empty-state) {
+    display: block;
+}
+
 .service-card {
     background: #0f1329;
     border-radius: 12px;

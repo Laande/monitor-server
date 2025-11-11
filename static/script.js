@@ -5,7 +5,18 @@ function updateTimeDisplay() {
     document.getElementById('last-update').textContent = getTimeAgo(lastUpdateTime);
 }
 
+function loadCachedData() {
+    const cached = localStorage.getItem('stats_data');
+    if (cached) {
+        const data = JSON.parse(cached);
+        updateUI(data);
+    }
+}
+
 function updateUI(data) {
+    // Sauvegarder en cache
+    localStorage.setItem('stats_data', JSON.stringify(data));
+    
     // CPU
     document.getElementById('cpu-percent').textContent = data.cpu.percent.toFixed(1);
     document.getElementById('cpu-progress').style.width = data.cpu.percent + '%';
@@ -41,6 +52,9 @@ function updateUI(data) {
     lastUpdateTime = Date.now();
     updateTimeDisplay();
 }
+
+// Charger les données en cache au démarrage
+loadCachedData();
 
 socket.on('connect', () => {
     console.log('WebSocket connected');

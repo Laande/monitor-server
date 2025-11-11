@@ -11,6 +11,14 @@ function formatMemory(memoryStr) {
     return formatBytes(bytes);
 }
 
+function loadCachedData() {
+    const cached = localStorage.getItem('projects_data');
+    if (cached) {
+        const data = JSON.parse(cached);
+        updateProjects(data);
+    }
+}
+
 function renderServices(services) {
     const container = document.getElementById('services-list');
     
@@ -91,12 +99,18 @@ function renderFiles(files) {
 }
 
 function updateProjects(data) {
+    // Sauvegarder en cache
+    localStorage.setItem('projects_data', JSON.stringify(data));
+    
     renderServices(data.services);
     renderFiles(data.files);
     
     lastUpdateTime = Date.now();
     updateTimeDisplay();
 }
+
+// Charger les données en cache au démarrage
+loadCachedData();
 
 socket.on('connect', () => {
     console.log('WebSocket connected');
