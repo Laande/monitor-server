@@ -14,7 +14,6 @@ function loadCachedData() {
 }
 
 function updateUI(data) {
-    // Sauvegarder en cache
     localStorage.setItem('stats_data', JSON.stringify(data));
     
     // CPU
@@ -48,12 +47,10 @@ function updateUI(data) {
         document.getElementById('system-boot').textContent = bootDate.toLocaleString();
     }
     
-    // Update timestamp
     lastUpdateTime = Date.now();
     updateTimeDisplay();
 }
 
-// Charger les données en cache au démarrage
 loadCachedData();
 
 socket.on('connect', () => {
@@ -68,5 +65,4 @@ socket.on('disconnect', () => {
     console.log('WebSocket disconnected');
 });
 
-// Update time display every second
 setInterval(updateTimeDisplay, 1000);

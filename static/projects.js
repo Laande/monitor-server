@@ -1,5 +1,9 @@
 const socket = io();
 let lastUpdateTime = null;
+let expandedStates = {
+    services: {},
+    files: {}
+};
 
 function updateTimeDisplay() {
     document.getElementById('last-update').textContent = getTimeAgo(lastUpdateTime);
@@ -19,6 +23,29 @@ function loadCachedData() {
     }
 }
 
+function closeLogsModal() {
+    const modal = document.getElementById('logs-modal');
+    modal.style.display = 'none';
+}
+
+async function showServiceLogs(serviceName) {
+    const modal = document.getElementById('logs-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalContent = document.getElementById('modal-content');
+    
+    modalTitle.textContent = `Logs - ${serviceName}`;
+    modalContent.innerHTML = '<div style="text-align: center; padding: 40px;">⏳ Loading...</div>';
+    modal.style.display = 'flex';
+    
+    try {
+        const response = await fetch(`/api/service/${serviceName}/logs`);
+        const data = await response.json();
+        modalContent.innerHTML = `<pre>${data.logs}</pre>`;
+    } catch (error) {
+        modalContent.innerHTML = `<div class="file-error">Failed to load logs: ${error.message}</div>`;
+    }
+}
+
 function renderServices(services) {
     const container = document.getElementById('services-list');
     
@@ -27,7 +54,8 @@ function renderServices(services) {
         return;
     }
     
-    container.innerHTML = services.map(service => `
+    container.innerHTML = services.map(service => {
+        return `
         <div class="service-card ${service.active ? 'active' : 'inactive'}">
             <div class="service-header">
                 <div class="service-status">
@@ -61,9 +89,43 @@ function renderServices(services) {
                     </div>
                     ` : ''}
                 </div>
+                <button class="toggle-logs-btn" onclick="showServiceLogs('${service.name}')">
+                    📋 Show logs
+                </button>
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
+}
+
+function toggleFileContent(index, event) {
+    if (event && (event.target.classList.contains('file-icon') || 
+                  event.target.classList.contains('file-name') || 
+                  event.target.classList.contains('file-size') ||
+                  event.target.closest('.file-header'))) {
+        return;
+    }
+    
+    const content = document.getElementById(`file-content-${index}`);
+    const card = document.getElementById(`file-card-${index}`);
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        card.classList.add('expanded');
+        expandedStates.files[index] = true;
+    } else {
+        content.style.display = 'none';
+        card.classList.remove('expanded');
+        expandedStates.files[index] = false;
+    }
+}
+
+let filesCache = {};
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 function renderFiles(files) {
@@ -74,8 +136,23 @@ function renderFiles(files) {
         return;
     }
     
-    container.innerHTML = files.map(file => `
-        <div class="file-card ${file.exists ? 'exists' : 'missing'}">
+    container.innerHTML = files.map((file, index) => {
+        const isExpanded = expandedStates.files[index] || false;
+        
+        let displayContent = '';
+        if (file.content !== null && file.content !== undefined) {
+            filesCache[index] = file.content;
+            displayContent = file.content;
+        } else if (filesCache[index]) {
+            displayContent = filesCache[index];
+        }
+        
+        const escapedContent = escapeHtml(displayContent);
+        
+        return `
+        <div class="file-card ${file.exists ? 'exists' : 'missing'} ${isExpanded ? 'expanded' : ''}" 
+             id="file-card-${index}"
+             ${file.expand === false && file.exists ? `onclick="toggleFileContent(${index}, event)" style="cursor: pointer;"` : ''}>
             <div class="file-header">
                 <div class="file-title">
                     <span class="file-icon">${file.exists ? '📄' : '❌'}</span>
@@ -88,28 +165,31 @@ function renderFiles(files) {
                 <div class="file-modified">
                     Last modified: ${new Date(file.modified * 1000).toLocaleString()}
                 </div>
-                <div class="file-content">
-                    <pre>${file.content}</pre>
-                </div>
+                ${file.expand === false ? `
+                    <div class="file-content" id="file-content-${index}" style="display: ${isExpanded ? 'block' : 'none'};">
+                        <pre>${escapedContent}</pre>
+                    </div>
+                ` : `
+                    <div class="file-content">
+                        <pre>${escapedContent}</pre>
+                    </div>
+                `}
             ` : `
                 <div class="file-error">${file.error || 'File not found'}</div>
             `}
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function updateProjects(data) {
-    // Sauvegarder en cache
     localStorage.setItem('projects_data', JSON.stringify(data));
-    
     renderServices(data.services);
     renderFiles(data.files);
-    
     lastUpdateTime = Date.now();
     updateTimeDisplay();
 }
 
-// Charger les données en cache au démarrage
 loadCachedData();
 
 socket.on('connect', () => {

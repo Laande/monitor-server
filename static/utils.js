@@ -1,5 +1,3 @@
-// Fonctions utilitaires partagées
-
 function formatBytes(bytes) {
     if (bytes === 0) return '0 B';
     const k = 1024;

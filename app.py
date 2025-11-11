@@ -1,8 +1,7 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, jsonify
 from flask_socketio import SocketIO, emit
-from utils import get_stats, get_projects_data
+from utils import get_stats, get_projects_data, get_systemd_logs
 from config import SYSTEMD_SERVICES, MONITORED_FILES
-import time
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -11,10 +10,8 @@ def background_loop():
     while True:
         stats = get_stats()
         projects_data = get_projects_data(SYSTEMD_SERVICES, MONITORED_FILES)
-
         socketio.emit('stats_update', stats, namespace='/')
         socketio.emit('projects_update', projects_data, namespace='/')
-
         socketio.sleep(5)
 
 @app.route('/')
@@ -25,11 +22,16 @@ def index():
 def projects():
     return render_template('projects.html')
 
+@app.route('/api/service/<service_name>/logs')
+def get_service_logs(service_name):
+    logs = get_systemd_logs(service_name)
+    return jsonify({'logs': logs})
+
 @socketio.on('connect')
 def handle_connect():
     print('Client connected')
     emit('stats_update', get_stats())
-    emit('projects_update', get_projects_data(SYSTEMD_SERVICES, MONITORED_FILES))
+    emit('projects_update', get_projects_data(SYSTEMD_SERVICES, MONITORED_FILES, force_content=True))
 
 @socketio.on('disconnect')
 def handle_disconnect():

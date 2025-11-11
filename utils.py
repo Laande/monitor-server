@@ -50,6 +50,19 @@ def get_stats() -> dict:
     return stats
 
 
+def get_systemd_logs(service_name: str, lines: int = 50) -> str:
+    try:
+        result = subprocess.run(
+            ['journalctl', '-u', service_name, '-n', str(lines), '--no-pager'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        return result.stdout
+    except Exception as e:
+        return f"Unable to fetch logs: {str(e)}"
+
+
 def get_systemd_status(service_name: str) -> dict:
     try:
         result = subprocess.run(
@@ -60,7 +73,6 @@ def get_systemd_status(service_name: str) -> dict:
         )
         is_active = result.stdout.strip() == 'active'
 
-        # Get more details
         result = subprocess.run(
             ['systemctl', 'show', service_name, '--no-page'],
             capture_output=True,
@@ -94,14 +106,17 @@ def get_systemd_status(service_name: str) -> dict:
         }
 
 
-def get_file_info(file_config: dict) -> dict:
+def get_file_info(file_config: dict, previous_modified: float = None) -> dict:
     try:
         path = file_config['path']
+        expand = file_config.get('expand', True)
+        
         if not os.path.exists(path):
             return {
                 'name': file_config['name'],
                 'path': path,
                 'exists': False,
+                'expand': expand,
                 'error': 'File not found'
             }
 
@@ -109,12 +124,22 @@ def get_file_info(file_config: dict) -> dict:
         size = stat.st_size
         modified = stat.st_mtime
 
-        # Read last N lines
+        if previous_modified is not None and modified == previous_modified:
+            return {
+                'name': file_config['name'],
+                'path': path,
+                'exists': True,
+                'size': size,
+                'modified': modified,
+                'content': None,
+                'expand': expand,
+                'unchanged': True
+            }
+
         content = ''
         try:
             with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-                lines = f.readlines()
-                content = ''.join(lines[-50:])  # Last 50 lines
+                content = f.read()
         except:
             content = 'Unable to read file content'
 
@@ -124,20 +149,37 @@ def get_file_info(file_config: dict) -> dict:
             'exists': True,
             'size': size,
             'modified': modified,
-            'content': content
+            'content': content,
+            'expand': expand,
+            'unchanged': False
         }
     except Exception as e:
         return {
             'name': file_config['name'],
             'path': file_config.get('path', 'unknown'),
             'exists': False,
+            'expand': file_config.get('expand', True),
             'error': str(e)
         }
 
 
-def get_projects_data(systemd_services: list, monitored_files: list) -> dict:
+_file_cache = {}
+
+def get_projects_data(systemd_services: list, monitored_files: list, force_content: bool = False) -> dict:
+    global _file_cache
+    
     services = [get_systemd_status(svc) for svc in systemd_services]
-    files = [get_file_info(file) for file in monitored_files]
+    files = []
+    
+    for idx, file_config in enumerate(monitored_files):
+        path = file_config['path']
+        previous_modified = None if force_content else _file_cache.get(path)
+        file_info = get_file_info(file_config, previous_modified)
+        
+        if file_info.get('exists'):
+            _file_cache[path] = file_info['modified']
+        
+        files.append(file_info)
 
     return {
         'services': services,
