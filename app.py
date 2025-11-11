@@ -1,11 +1,10 @@
-import os
 from flask import Flask, render_template, jsonify
 from flask_socketio import SocketIO, emit
 from utils import get_stats, get_projects_data, get_systemd_logs
 from config import SYSTEMD_SERVICES, MONITORED_FILES
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 def background_loop():
     while True:
@@ -33,9 +32,11 @@ def handle_connect():
     emit('stats_update', get_stats())
     emit('projects_update', get_projects_data(SYSTEMD_SERVICES, MONITORED_FILES, force_content=True))
 
+socketio.start_background_task(background_loop)
+
 if __name__ == '__main__':
     socketio.start_background_task(background_loop)
     if "--debug" in os.sys.argv:
         socketio.run(app, host='0.0.0.0', port=5500, debug=True)
     else:
-        socketio.run(app, host='0.0.0.0', port=5500)
+        socketio.run(app, host='0.0.0.0', port=5500, allow_unsafe_werkzeug=True)
