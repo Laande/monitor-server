@@ -13,9 +13,9 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Configuration - Add your systemd services here
 SYSTEMD_SERVICES = [
-    # 'nginx',
-    # 'docker',
-    # 'postgresql',
+    "hab-bot.service",
+    "forum-pulse.service",
+    "quote.service"
 ]
 
 # Configuration - Add your files to monitor here
@@ -100,11 +100,14 @@ def get_systemd_status(service_name):
                 key, value = line.split('=', 1)
                 details[key] = value
         
+        date = details.get('ActiveEnterTimestamp', '0')
+        uptime_formatted = " ".join(date.split()[1:3])
+        
         return {
             'name': service_name,
             'active': is_active,
             'status': details.get('ActiveState', 'unknown'),
-            'uptime': details.get('ActiveEnterTimestamp', 'N/A'),
+            'uptime': uptime_formatted,
             'memory': details.get('MemoryCurrent', '0'),
             'description': details.get('Description', service_name)
         }

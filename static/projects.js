@@ -68,7 +68,7 @@ function renderServices(services) {
                     ${service.uptime && service.uptime !== 'N/A' ? `
                     <div class="info-row">
                         <span class="info-label">Started:</span>
-                        <span class="info-value">${new Date(service.uptime).toLocaleString()}</span>
+                        <span class="info-value">${service.uptime}</span>
                     </div>
                     ` : ''}
                     ${service.error ? `
