@@ -1,38 +1,20 @@
 from flask import Flask, render_template
 from flask_socketio import SocketIO, emit
 from utils import get_stats, get_projects_data
+from config import SYSTEMD_SERVICES, MONITORED_FILES
+import time
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'monitoring-secret-key'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Configuration - Add your systemd services here
-SYSTEMD_SERVICES = [
-    "hab-bot.service",
-    "forum-pulse.service",
-    "quote.service"
-]
-
-# Configuration - Add your files to monitor here
-MONITORED_FILES = [
-    # {'name': 'Application Log', 'path': '/var/log/myapp.log'},
-    # {'name': 'Config File', 'path': '/etc/myapp/config.json'},
-]
-
-
-def background_stats():
-    """Tâche de fond pour envoyer les stats système"""
+def background_loop():
     while True:
         stats = get_stats()
-        socketio.emit('stats_update', stats, namespace='/')
-        socketio.sleep(2)
-
-
-def background_projects():
-    """Tâche de fond pour envoyer les données des projets"""
-    while True:
         projects_data = get_projects_data(SYSTEMD_SERVICES, MONITORED_FILES)
+
+        socketio.emit('stats_update', stats, namespace='/')
         socketio.emit('projects_update', projects_data, namespace='/')
+
         socketio.sleep(5)
 
 @app.route('/')
@@ -54,6 +36,5 @@ def handle_disconnect():
     print('Client disconnected')
 
 if __name__ == '__main__':
-    socketio.start_background_task(background_stats)
-    socketio.start_background_task(background_projects)
+    socketio.start_background_task(background_loop)
     socketio.run(app, host='0.0.0.0', port=5500, debug=True)
