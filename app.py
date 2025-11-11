@@ -29,13 +29,8 @@ def get_service_logs(service_name):
 
 @socketio.on('connect')
 def handle_connect():
-    print('Client connected')
     emit('stats_update', get_stats())
     emit('projects_update', get_projects_data(SYSTEMD_SERVICES, MONITORED_FILES, force_content=True))
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    print('Client disconnected')
 
 if __name__ == '__main__':
     socketio.start_background_task(background_loop)
