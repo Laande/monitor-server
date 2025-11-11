@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template, jsonify
 from flask_socketio import SocketIO, emit
 from utils import get_stats, get_projects_data, get_systemd_logs
@@ -34,4 +35,7 @@ def handle_connect():
 
 if __name__ == '__main__':
     socketio.start_background_task(background_loop)
-    socketio.run(app, host='0.0.0.0', port=5500, debug=True)
+    if "--debug" in os.sys.argv:
+        socketio.run(app, host='0.0.0.0', port=5500, debug=True)
+    else:
+        socketio.run(app, host='0.0.0.0', port=5500)
