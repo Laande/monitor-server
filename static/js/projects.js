@@ -99,10 +99,12 @@ function renderServices(services) {
 }
 
 function toggleFileContent(index, event) {
-    if (event && (event.target.classList.contains('file-icon') || 
-                  event.target.classList.contains('file-name') || 
-                  event.target.classList.contains('file-size') ||
-                  event.target.closest('.file-header'))) {
+    const clickedElement = event.target;
+    
+    if (clickedElement.tagName === 'PRE' || 
+        clickedElement.tagName === 'SPAN' ||
+        clickedElement.closest('pre') ||
+        clickedElement.closest('.file-content')) {
         return;
     }
     
