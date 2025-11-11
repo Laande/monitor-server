@@ -1,29 +1,28 @@
-# Monitoring Système Linux
+# Linux System Monitoring
 
-Application web de monitoring pour surveiller les ressources système de ta machine Linux.
+Web application for monitoring system resources on your Linux machine.
 
-## Fonctionnalités
+## Features
 
-- 📊 Monitoring en temps réel du CPU, RAM, disque et bande passante
-- 🎨 Interface moderne et responsive
-- 🔄 Mise à jour automatique toutes les 2 secondes
+- Real-time monitoring of CPU, RAM, disk and bandwidth
+- WebSocket-based live updates (no polling)
 
 ## Installation
 
-1. Installer les dépendances:
+1. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-2. Lancer l'application:
+2. Run the application:
 ```bash
 python app.py
 ```
 
-3. Ouvrir le navigateur sur: http://localhost:5000
+3. Open your browser at: http://localhost:5500
 
-## Prochaines étapes
+## Technology Stack
 
-- Pages pour différents projets
-- Monitoring des services systemd
-- Affichage du contenu de fichiers avec date de modification
+- Flask + Flask-SocketIO for WebSocket communication
+- psutil for system metrics
+- Vanilla JavaScript for frontend

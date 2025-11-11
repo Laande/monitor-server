@@ -14,20 +14,20 @@ function formatNumber(num) {
 }
 
 function getTimeAgo() {
-    if (!lastUpdateTime) return 'jamais';
+    if (!lastUpdateTime) return 'never';
     
     const seconds = Math.floor((Date.now() - lastUpdateTime) / 1000);
     
-    if (seconds < 5) return 'à l\'instant';
-    if (seconds < 60) return `il y a ${seconds} secondes`;
+    if (seconds < 5) return 'just now';
+    if (seconds < 60) return `${seconds} seconds ago`;
     
     const minutes = Math.floor(seconds / 60);
-    if (minutes === 1) return 'il y a 1 minute';
-    if (minutes < 60) return `il y a ${minutes} minutes`;
+    if (minutes === 1) return '1 minute ago';
+    if (minutes < 60) return `${minutes} minutes ago`;
     
     const hours = Math.floor(minutes / 60);
-    if (hours === 1) return 'il y a 1 heure';
-    return `il y a ${hours} heures`;
+    if (hours === 1) return '1 hour ago';
+    return `${hours} hours ago`;
 }
 
 function updateTimeDisplay() {
@@ -47,25 +47,25 @@ function updateUI(data) {
     document.getElementById('ram-used').textContent = formatBytes(data.memory.used);
     document.getElementById('ram-total').textContent = formatBytes(data.memory.total);
     
-    // Disque
+    // Disk
     document.getElementById('disk-percent').textContent = data.disk.percent.toFixed(1);
     document.getElementById('disk-progress').style.width = data.disk.percent + '%';
     document.getElementById('disk-used').textContent = formatBytes(data.disk.used);
     document.getElementById('disk-free').textContent = formatBytes(data.disk.free);
     
-    // Réseau
+    // Network
     document.getElementById('net-sent').textContent = formatBytes(data.network.bytes_sent);
     document.getElementById('net-recv').textContent = formatBytes(data.network.bytes_recv);
     document.getElementById('net-packets-sent').textContent = formatNumber(data.network.packets_sent);
     document.getElementById('net-packets-recv').textContent = formatNumber(data.network.packets_recv);
     
-    // Mise à jour du timestamp
+    // Update timestamp
     lastUpdateTime = Date.now();
     updateTimeDisplay();
 }
 
 socket.on('connect', () => {
-    console.log('WebSocket connecté');
+    console.log('WebSocket connected');
 });
 
 socket.on('stats_update', (data) => {
@@ -73,8 +73,8 @@ socket.on('stats_update', (data) => {
 });
 
 socket.on('disconnect', () => {
-    console.log('WebSocket déconnecté');
+    console.log('WebSocket disconnected');
 });
 
-// Mettre à jour l'affichage du temps toutes les secondes
+// Update time display every second
 setInterval(updateTimeDisplay, 1000);
