@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoring Système</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🖥️ Monitoring Système</h1>
+            <div class="last-update">Dernière mise à jour: <span id="last-update">--</span></div>
+        </header>
+
+        <nav>
+            <a href="/" class="active">Accueil</a>
+            <a href="/projects">Projets</a>
+        </nav>
+
+        <div class="grid">
+            <!-- CPU -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>💻 CPU</h2>
+                </div>
+                <div class="card-body">
+                    <div class="metric-main">
+                        <span class="value" id="cpu-percent">--</span>
+                        <span class="unit">%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="cpu-progress"></div>
+                    </div>
+                    <div class="metric-details">
+                        <div>Cœurs: <span id="cpu-count">--</span></div>
+                        <div>Fréquence: <span id="cpu-freq">--</span> MHz</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RAM -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>🧠 RAM</h2>
+                </div>
+                <div class="card-body">
+                    <div class="metric-main">
+                        <span class="value" id="ram-percent">--</span>
+                        <span class="unit">%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="ram-progress"></div>
+                    </div>
+                    <div class="metric-details">
+                        <div>Utilisé: <span id="ram-used">--</span></div>
+                        <div>Total: <span id="ram-total">--</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Disque -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>💾 Disque</h2>
+                </div>
+                <div class="card-body">
+                    <div class="metric-main">
+                        <span class="value" id="disk-percent">--</span>
+                        <span class="unit">%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="disk-progress"></div>
+                    </div>
+                    <div class="metric-details">
+                        <div>Utilisé: <span id="disk-used">--</span></div>
+                        <div>Libre: <span id="disk-free">--</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Réseau -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>🌐 Réseau</h2>
+                </div>
+                <div class="card-body">
+                    <div class="network-stats">
+                        <div class="network-item">
+                            <div class="network-label">⬆️ Envoyé</div>
+                            <div class="network-value" id="net-sent">--</div>
+                        </div>
+                        <div class="network-item">
+                            <div class="network-label">⬇️ Reçu</div>
+                            <div class="network-value" id="net-recv">--</div>
+                        </div>
+                    </div>
+                    <div class="metric-details">
+                        <div>Paquets envoyés: <span id="net-packets-sent">--</span></div>
+                        <div>Paquets reçus: <span id="net-packets-recv">--</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
