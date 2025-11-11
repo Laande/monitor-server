@@ -4,7 +4,7 @@ from utils import get_stats, get_projects_data, get_systemd_logs
 from config import SYSTEMD_SERVICES, MONITORED_FILES
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 def background_loop():
     while True:
@@ -31,8 +31,6 @@ def get_service_logs(service_name):
 def handle_connect():
     emit('stats_update', get_stats())
     emit('projects_update', get_projects_data(SYSTEMD_SERVICES, MONITORED_FILES, force_content=True))
-
-socketio.start_background_task(background_loop)
 
 if __name__ == '__main__':
     socketio.start_background_task(background_loop)
