@@ -101,6 +101,46 @@
                     </div>
                 </div>
             </div>
+
+            <!-- System Info -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>⚙️ System</h2>
+                </div>
+                <div class="card-body">
+                    <div class="system-info">
+                        <div class="info-item">
+                            <div class="info-label">🚀 Uptime</div>
+                            <div class="info-value" id="system-uptime">--</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">📅 Boot Time</div>
+                            <div class="info-value" id="system-boot">--</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GPU (if available) -->
+            <div class="card" id="gpu-card" style="display: none;">
+                <div class="card-header">
+                    <h2>🎮 GPU</h2>
+                </div>
+                <div class="card-body">
+                    <div class="gpu-name" id="gpu-name">--</div>
+                    <div class="metric-main">
+                        <span class="value" id="gpu-load">--</span>
+                        <span class="unit">%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="gpu-progress"></div>
+                    </div>
+                    <div class="metric-details">
+                        <div>Memory: <span id="gpu-memory">--</span></div>
+                        <div>Temp: <span id="gpu-temp">--</span>°C</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

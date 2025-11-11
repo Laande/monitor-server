@@ -34,6 +34,16 @@ function updateTimeDisplay() {
     document.getElementById('last-update').textContent = getTimeAgo();
 }
 
+function formatUptime(seconds) {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+}
+
 function updateUI(data) {
     // CPU
     document.getElementById('cpu-percent').textContent = data.cpu.percent.toFixed(1);
@@ -58,6 +68,24 @@ function updateUI(data) {
     document.getElementById('net-recv').textContent = formatBytes(data.network.bytes_recv);
     document.getElementById('net-packets-sent').textContent = formatNumber(data.network.packets_sent);
     document.getElementById('net-packets-recv').textContent = formatNumber(data.network.packets_recv);
+    
+    // System info
+    if (data.system) {
+        document.getElementById('system-uptime').textContent = formatUptime(data.system.uptime_seconds);
+        const bootDate = new Date(data.system.boot_time * 1000);
+        document.getElementById('system-boot').textContent = bootDate.toLocaleString();
+    }
+    
+    // GPU (if available)
+    if (data.gpu) {
+        document.getElementById('gpu-card').style.display = 'block';
+        document.getElementById('gpu-name').textContent = data.gpu.name;
+        document.getElementById('gpu-load').textContent = data.gpu.load.toFixed(1);
+        document.getElementById('gpu-progress').style.width = data.gpu.load + '%';
+        document.getElementById('gpu-memory').textContent = 
+            `${data.gpu.memory_used.toFixed(0)} / ${data.gpu.memory_total.toFixed(0)} MB`;
+        document.getElementById('gpu-temp').textContent = data.gpu.temperature.toFixed(0);
+    }
     
     // Update timestamp
     lastUpdateTime = Date.now();

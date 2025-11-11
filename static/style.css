@@ -193,3 +193,33 @@ nav a.active {
         grid-template-columns: 1fr;
     }
 }
+
+.system-info {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.info-item {
+    text-align: center;
+}
+
+.info-label {
+    font-size: 1.1em;
+    color: #8b92b0;
+    margin-bottom: 10px;
+}
+
+.info-value {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #00d9ff;
+}
+
+.gpu-name {
+    text-align: center;
+    font-size: 1.1em;
+    color: #8b92b0;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
