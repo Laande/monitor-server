@@ -151,10 +151,13 @@ function renderFiles(files) {
         
         const escapedContent = escapeHtml(displayContent);
         
+        const defaultExpanded = file.expand !== false;
+        const currentlyExpanded = expandedStates.files[index] !== undefined ? expandedStates.files[index] : defaultExpanded;
+        
         return `
-        <div class="file-card ${file.exists ? 'exists' : 'missing'} ${isExpanded ? 'expanded' : ''}" 
+        <div class="file-card ${file.exists ? 'exists' : 'missing'} ${currentlyExpanded ? 'expanded' : ''}" 
              id="file-card-${index}"
-             ${file.expand === false && file.exists ? `onclick="toggleFileContent(${index}, event)" style="cursor: pointer;"` : ''}>
+             ${file.exists ? `onclick="toggleFileContent(${index}, event)" style="cursor: pointer;"` : ''}>
             <div class="file-header">
                 <div class="file-title">
                     <span class="file-icon">${file.exists ? '📄' : '❌'}</span>
@@ -167,15 +170,9 @@ function renderFiles(files) {
                 <div class="file-modified">
                     Last modified: ${new Date(file.modified * 1000).toLocaleString()}
                 </div>
-                ${file.expand === false ? `
-                    <div class="file-content" id="file-content-${index}" style="display: ${isExpanded ? 'block' : 'none'};">
-                        <pre>${escapedContent}</pre>
-                    </div>
-                ` : `
-                    <div class="file-content">
-                        <pre>${escapedContent}</pre>
-                    </div>
-                `}
+                <div class="file-content" id="file-content-${index}" style="display: ${currentlyExpanded ? 'block' : 'none'};">
+                    <pre>${escapedContent}</pre>
+                </div>
             ` : `
                 <div class="file-error">${file.error || 'File not found'}</div>
             `}
