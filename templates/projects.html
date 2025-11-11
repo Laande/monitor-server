@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects - System Monitoring</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📁 Projects Monitoring</h1>
+            <div class="last-update">Last update: <span id="last-update">--</span></div>
+        </header>
+
+        <nav>
+            <a href="/">Home</a>
+            <a href="/projects" class="active">Projects</a>
+        </nav>
+
+        <div class="projects-container">
+            <!-- Systemd Services -->
+            <section class="project-section">
+                <h2 class="section-title">🔧 Systemd Services</h2>
+                <div id="services-list" class="services-grid">
+                    <div class="empty-state">No services configured</div>
+                </div>
+            </section>
+
+            <!-- Monitored Files -->
+            <section class="project-section">
+                <h2 class="section-title">📄 Monitored Files</h2>
+                <div id="files-list" class="files-grid">
+                    <div class="empty-state">No files configured</div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='projects.js') }}"></script>
+</body>
+</html>
