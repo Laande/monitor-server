@@ -14,8 +14,8 @@ A real-time system monitoring dashboard built with Flask and Socket.IO. Monitor 
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd system-monitoring
+git clone https://github.com/Laande/monitor-server.git
+cd monitor-server
 ```
 
 2. Install dependencies:
@@ -52,3 +52,8 @@ python app.py
 ```
 
 Access the dashboard at `http://localhost:5500`
+
+
+## Preview
+
+![Preview](preview.gif)
