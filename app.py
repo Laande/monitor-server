@@ -24,28 +24,6 @@ MONITORED_FILES = [
     # {'name': 'Config File', 'path': '/etc/myapp/config.json'},
 ]
 
-def get_gpu_info():
-    """Try to get GPU info using different methods"""
-    gpu_info = None
-    
-    try:
-        import GPUtil
-        gpus = GPUtil.getGPUs()
-        if gpus:
-            gpu = gpus[0]
-            gpu_info = {
-                'name': gpu.name,
-                'load': gpu.load * 100,
-                'memory_used': gpu.memoryUsed,
-                'memory_total': gpu.memoryTotal,
-                'memory_percent': (gpu.memoryUsed / gpu.memoryTotal) * 100 if gpu.memoryTotal > 0 else 0,
-                'temperature': gpu.temperature
-            }
-    except:
-        pass
-    
-    return gpu_info
-
 def get_stats():
     cpu_percent = psutil.cpu_percent(interval=1)
     cpu_count = psutil.cpu_count()
@@ -58,9 +36,6 @@ def get_stats():
     # System uptime
     boot_time = psutil.boot_time()
     uptime_seconds = time.time() - boot_time
-    
-    # GPU info
-    gpu_info = get_gpu_info()
     
     stats = {
         'cpu': {
@@ -91,9 +66,6 @@ def get_stats():
             'uptime_seconds': uptime_seconds
         }
     }
-    
-    if gpu_info:
-        stats['gpu'] = gpu_info
     
     return stats
 

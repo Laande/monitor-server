@@ -76,17 +76,6 @@ function updateUI(data) {
         document.getElementById('system-boot').textContent = bootDate.toLocaleString();
     }
     
-    // GPU (if available)
-    if (data.gpu) {
-        document.getElementById('gpu-card').style.display = 'block';
-        document.getElementById('gpu-name').textContent = data.gpu.name;
-        document.getElementById('gpu-load').textContent = data.gpu.load.toFixed(1);
-        document.getElementById('gpu-progress').style.width = data.gpu.load + '%';
-        document.getElementById('gpu-memory').textContent = 
-            `${data.gpu.memory_used.toFixed(0)} / ${data.gpu.memory_total.toFixed(0)} MB`;
-        document.getElementById('gpu-temp').textContent = data.gpu.temperature.toFixed(0);
-    }
-    
     // Update timestamp
     lastUpdateTime = Date.now();
     updateTimeDisplay();
