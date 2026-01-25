@@ -13,7 +13,7 @@ def background_loop():
         projects_data = get_projects_data(SYSTEMD_SERVICES, MONITORED_FILES)
         socketio.emit('stats_update', stats, namespace='/')
         socketio.emit('projects_update', projects_data, namespace='/')
-        socketio.sleep(5)
+        socketio.sleep(2.5)
 
 @app.route('/')
 def index():

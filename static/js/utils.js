@@ -6,10 +6,6 @@ function formatBytes(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-function formatNumber(num) {
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-}
-
 function getTimeAgo(lastUpdateTime) {
     if (!lastUpdateTime) return 'never';
     

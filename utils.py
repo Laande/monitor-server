@@ -4,16 +4,56 @@ import os
 import subprocess
 
 
+_net_last = {'io': None, 'time': None}
+
+def get_cpu_temperature():
+    try:
+        temps = psutil.sensors_temperatures()
+        if not temps:
+            return None
+        
+        for name, entries in temps.items():
+            if entries and entries[0].current:
+                return round(entries[0].current, 1)
+    except:
+        return None
+
+
+def get_network_speeds():
+    global _net_last
+    
+    net_io = psutil.net_io_counters()
+    net_time = time.time()
+    
+    speeds = {
+        'bytes_sent': net_io.bytes_sent,
+        'bytes_recv': net_io.bytes_recv,
+        'bytes_sent_per_sec': 0,
+        'bytes_recv_per_sec': 0,
+    }
+    
+    if _net_last['io'] and _net_last['time']:
+        delta = net_time - _net_last['time']
+        if delta > 0:
+            speeds['bytes_sent_per_sec'] = (net_io.bytes_sent - _net_last['io'].bytes_sent) / delta
+            speeds['bytes_recv_per_sec'] = (net_io.bytes_recv - _net_last['io'].bytes_recv) / delta
+    
+    _net_last['io'] = net_io
+    _net_last['time'] = net_time
+    
+    return speeds
+
+
 def get_stats() -> dict:
     cpu_percent = psutil.cpu_percent(interval=1)
     cpu_count = psutil.cpu_count()
-    cpu_freq = psutil.cpu_freq()
+    cpu_temp = get_cpu_temperature()
 
     memory = psutil.virtual_memory()
     disk = psutil.disk_usage('/')
-    net_io = psutil.net_io_counters()
+    
+    network_info = get_network_speeds()
 
-    # System uptime
     boot_time = psutil.boot_time()
     uptime_seconds = time.time() - boot_time
 
@@ -21,7 +61,7 @@ def get_stats() -> dict:
         'cpu': {
             'percent': cpu_percent,
             'count': cpu_count,
-            'freq': cpu_freq.current if cpu_freq else 0
+            'temperature': cpu_temp
         },
         'memory': {
             'total': memory.total,
@@ -35,12 +75,7 @@ def get_stats() -> dict:
             'free': disk.free,
             'percent': disk.percent
         },
-        'network': {
-            'bytes_sent': net_io.bytes_sent,
-            'bytes_recv': net_io.bytes_recv,
-            'packets_sent': net_io.packets_sent,
-            'packets_recv': net_io.packets_recv
-        },
+        'network': network_info,
         'system': {
             'boot_time': boot_time,
             'uptime_seconds': uptime_seconds
@@ -171,7 +206,7 @@ def get_projects_data(systemd_services: list, monitored_files: list, force_conte
     services = [get_systemd_status(svc) for svc in systemd_services]
     files = []
     
-    for idx, file_config in enumerate(monitored_files):
+    for file_config in monitored_files:
         path = file_config['path']
         previous_modified = None if force_content else _file_cache.get(path)
         file_info = get_file_info(file_config, previous_modified)
