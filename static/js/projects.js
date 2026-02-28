@@ -26,6 +26,44 @@ function loadCachedData() {
 function closeLogsModal() {
     const modal = document.getElementById('logs-modal');
     modal.style.display = 'none';
+    
+    if (logsRefreshInterval) {
+        clearInterval(logsRefreshInterval);
+        logsRefreshInterval = null;
+    }
+    currentLogService = null;
+}
+
+let logsRefreshInterval = null;
+let currentLogService = null;
+
+async function fetchAndUpdateLogs(serviceName) {
+    const modalContent = document.getElementById('modal-content');
+    const preElement = modalContent.querySelector('pre');
+    
+    let previousScrollTop = 0;
+    let wasAtBottom = false;
+    
+    if (preElement) {
+        previousScrollTop = modalContent.scrollTop;
+        const scrollHeight = modalContent.scrollHeight;
+        const clientHeight = modalContent.clientHeight;
+        wasAtBottom = (scrollHeight - previousScrollTop - clientHeight) < 50;
+    }
+    
+    try {
+        const response = await fetch(`/api/service/${serviceName}/logs`);
+        const data = await response.json();
+        modalContent.innerHTML = `<pre>${data.logs}</pre>`;
+        
+        if (wasAtBottom) {
+            modalContent.scrollTop = modalContent.scrollHeight;
+        } else {
+            modalContent.scrollTop = previousScrollTop;
+        }
+    } catch (error) {
+        modalContent.innerHTML = `<div class="file-error">Failed to load logs: ${error.message}</div>`;
+    }
 }
 
 async function showServiceLogs(serviceName) {
@@ -33,17 +71,22 @@ async function showServiceLogs(serviceName) {
     const modalTitle = document.getElementById('modal-title');
     const modalContent = document.getElementById('modal-content');
     
+    currentLogService = serviceName;
     modalTitle.textContent = `Logs - ${serviceName}`;
     modalContent.innerHTML = '<div style="text-align: center; padding: 40px;">⏳ Loading...</div>';
     modal.style.display = 'flex';
     
-    try {
-        const response = await fetch(`/api/service/${serviceName}/logs`);
-        const data = await response.json();
-        modalContent.innerHTML = `<pre>${data.logs}</pre>`;
-    } catch (error) {
-        modalContent.innerHTML = `<div class="file-error">Failed to load logs: ${error.message}</div>`;
+    if (logsRefreshInterval) {
+        clearInterval(logsRefreshInterval);
     }
+    
+    await fetchAndUpdateLogs(serviceName);
+    
+    logsRefreshInterval = setInterval(() => {
+        if (currentLogService === serviceName) {
+            fetchAndUpdateLogs(serviceName);
+        }
+    }, 3000);
 }
 
 function renderServices(services) {
@@ -123,11 +166,36 @@ function toggleFileContent(index, event) {
 }
 
 let filesCache = {};
+let fileScrollPositions = {};
 
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function saveScrollPositions() {
+    const container = document.getElementById('files-list');
+    const fileCards = container.querySelectorAll('.file-card');
+    
+    fileCards.forEach((card, index) => {
+        const contentDiv = card.querySelector('.file-content');
+        if (contentDiv) {
+            fileScrollPositions[index] = contentDiv.scrollTop;
+        }
+    });
+}
+
+function restoreScrollPositions() {
+    const container = document.getElementById('files-list');
+    const fileCards = container.querySelectorAll('.file-card');
+    
+    fileCards.forEach((card, index) => {
+        const contentDiv = card.querySelector('.file-content');
+        if (contentDiv && fileScrollPositions[index] !== undefined) {
+            contentDiv.scrollTop = fileScrollPositions[index];
+        }
+    });
 }
 
 function renderFiles(files) {
@@ -137,6 +205,8 @@ function renderFiles(files) {
         container.innerHTML = '<div class="empty-state">No files configured</div>';
         return;
     }
+    
+    saveScrollPositions();
     
     container.innerHTML = files.map((file, index) => {
         const isExpanded = expandedStates.files[index] || false;
@@ -179,6 +249,8 @@ function renderFiles(files) {
         </div>
         `;
     }).join('');
+    
+    setTimeout(restoreScrollPositions, 0);
 }
 
 function updateProjects(data) {
