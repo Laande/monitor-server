@@ -85,7 +85,7 @@ def get_stats() -> dict:
     return stats
 
 
-def get_systemd_logs(service_name: str, lines: int = 50) -> str:
+def get_systemd_logs(service_name: str, lines: int = 200) -> str:
     try:
         result = subprocess.run(
             ['journalctl', '-u', service_name, '-n', str(lines), '--no-pager'],
