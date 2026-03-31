@@ -22,7 +22,6 @@
         </nav>
 
         <div class="grid">
-            <!-- CPU -->
             <div class="card">
                 <div class="card-header">
                     <h2>💻 CPU</h2>
@@ -42,7 +41,6 @@
                 </div>
             </div>
 
-            <!-- RAM -->
             <div class="card">
                 <div class="card-header">
                     <h2>🧠 RAM</h2>
@@ -58,26 +56,6 @@
                     <div class="metric-details">
                         <div>Used: <span id="ram-used">--</span></div>
                         <div>Total: <span id="ram-total">--</span></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Disk -->
-            <div class="card">
-                <div class="card-header">
-                    <h2>💾 Disk</h2>
-                </div>
-                <div class="card-body">
-                    <div class="metric-main">
-                        <span class="value" id="disk-percent">--</span>
-                        <span class="unit">%</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="disk-progress"></div>
-                    </div>
-                    <div class="metric-details">
-                        <div>Used: <span id="disk-used">--</span></div>
-                        <div>Free: <span id="disk-free">--</span></div>
                     </div>
                 </div>
             </div>
@@ -105,7 +83,6 @@
                 </div>
             </div>
 
-            <!-- System Info -->
             <div class="card">
                 <div class="card-header">
                     <h2>⚙️ System</h2>
@@ -123,6 +100,7 @@
                     </div>
                 </div>
             </div>
+            <div id="disks-grid"></div>
         </div>
     </div>
 

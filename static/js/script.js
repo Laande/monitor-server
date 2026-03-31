@@ -5,17 +5,49 @@ function updateTimeDisplay() {
     document.getElementById('last-update').textContent = getTimeAgo(lastUpdateTime);
 }
 
-function loadCachedData() {
-    const cached = localStorage.getItem('stats_data');
-    if (cached) {
-        const data = JSON.parse(cached);
-        updateUI(data);
+
+function updateDisks(disks) {
+    const disksGrid = document.getElementById('disks-grid');
+    if (!disksGrid) return;
+
+    localStorage.setItem('numDisks', disks.length);
+
+    if (disks.length === 0) {
+        disksGrid.innerHTML = '';
+        disksGrid.style.display = 'none';
+    } else {
+        disksGrid.style.display = 'contents';
+        disksGrid.innerHTML = '';
+
+        disks.forEach(disk => {
+            const bodyHtml = `
+                <div class="card">
+                <div class="card-header">
+                    <h2>💾 ${disk.mountpoint}</h2>
+                </div>
+                <div class="card-body">
+                    <div class="metric-main">
+                        <span class="value">${disk.percent.toFixed(1)}</span>
+                        <span class="unit">%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${disk.percent}%"></div>
+                    </div>
+                    <div class="metric-details">
+                        <div>Used: ${formatBytes(disk.used)}</div>
+                        <div>Free: ${formatBytes(disk.free)}</div>
+                        <div>Total: ${formatBytes(disk.total)}</div>
+                    </div>
+                </div>
+                </div>
+            `;
+
+            disksGrid.innerHTML += bodyHtml;
+        });
     }
 }
 
 function updateUI(data) {
-    localStorage.setItem('stats_data', JSON.stringify(data));
-    
     // CPU
     document.getElementById('cpu-percent').textContent = data.cpu.percent.toFixed(1);
     document.getElementById('cpu-progress').style.width = data.cpu.percent + '%';
@@ -35,11 +67,6 @@ function updateUI(data) {
     document.getElementById('ram-used').textContent = formatBytes(data.memory.used);
     document.getElementById('ram-total').textContent = formatBytes(data.memory.total);
     
-    // Disk
-    document.getElementById('disk-percent').textContent = data.disk.percent.toFixed(1);
-    document.getElementById('disk-progress').style.width = data.disk.percent + '%';
-    document.getElementById('disk-used').textContent = formatBytes(data.disk.used);
-    document.getElementById('disk-free').textContent = formatBytes(data.disk.free);
     
     // Network
     document.getElementById('net-sent-speed').textContent = formatBytes(data.network.bytes_sent_per_sec) + '/s';
@@ -54,22 +81,56 @@ function updateUI(data) {
         document.getElementById('system-boot').textContent = bootDate.toLocaleString();
     }
     
+    // Disks
+    updateDisks(Array.isArray(data.disks) ? data.disks : []);
+    
     lastUpdateTime = Date.now();
     updateTimeDisplay();
 }
 
-loadCachedData();
-
-socket.on('connect', () => {
-    console.log('WebSocket connected');
-});
 
 socket.on('stats_update', (data) => {
     updateUI(data);
 });
 
-socket.on('disconnect', () => {
-    console.log('WebSocket disconnected');
-});
+const numDisks = parseInt(localStorage.getItem('numDisks')) || 1;
+generateDiskPlaceholders(numDisks);
 
-setInterval(updateTimeDisplay, 1000);
+function generateDiskPlaceholders(count) {
+    const disksGrid = document.getElementById('disks-grid');
+    if (!disksGrid) return;
+
+    if (count === 0) {
+        disksGrid.innerHTML = '';
+        disksGrid.style.display = 'none';
+    } else {
+        disksGrid.style.display = 'contents';
+        disksGrid.innerHTML = '';
+
+        for (let i = 0; i < count; i++) {
+            const placeholderHtml = `
+                <div class="card">
+                    <div class="card-header">
+                        <h2>💾 --</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-main">
+                            <span class="value">--</span>
+                            <span class="unit">%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 0%"></div>
+                        </div>
+                        <div class="metric-details">
+                            <div>Used: --</div>
+                            <div>Free: --</div>
+                            <div>Total: --</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            disksGrid.innerHTML += placeholderHtml;
+        }
+    }
+}
+

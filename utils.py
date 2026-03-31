@@ -50,13 +50,12 @@ def get_stats() -> dict:
     cpu_temp = get_cpu_temperature()
 
     memory = psutil.virtual_memory()
-    disk = psutil.disk_usage('/')
-    
     network_info = get_network_speeds()
-
+    
     boot_time = psutil.boot_time()
     uptime_seconds = time.time() - boot_time
-
+    disks = get_disks()
+    
     stats = {
         'cpu': {
             'percent': cpu_percent,
@@ -69,12 +68,7 @@ def get_stats() -> dict:
             'percent': memory.percent,
             'available': memory.available
         },
-        'disk': {
-            'total': disk.total,
-            'used': disk.used,
-            'free': disk.free,
-            'percent': disk.percent
-        },
+        'disks': disks,
         'network': network_info,
         'system': {
             'boot_time': boot_time,
@@ -83,6 +77,35 @@ def get_stats() -> dict:
     }
 
     return stats
+    
+    
+def get_disks():
+    disks = []
+    partitions = psutil.disk_partitions()
+    allowed_filesystems = ['ext4', 'ext3', 'ext2', 'xfs', 'btrfs', 'ntfs', 'vfat', 'fat32', 'exfat', 'zfs', 'hfs', 'hfsplus', 'ufs', 'jfs', 'reiserfs']
+    
+    for partition in partitions:
+        mountpoint = partition.mountpoint
+        fstype = partition.fstype
+        
+        if fstype not in allowed_filesystems:
+            continue
+            
+        # Skip system mounts
+        excluded_mounts = ['/boot', '/sys', '/proc', '/dev', '/run', '/tmp', '/var']
+        if mountpoint in excluded_mounts:
+            continue
+            
+        usage = psutil.disk_usage(mountpoint)
+        disks.append({
+            'mountpoint': mountpoint,
+            'total': usage.total,
+            'used': usage.used,
+            'free': usage.free,
+            'percent': usage.percent
+        })
+    
+    return disks
 
 
 def get_systemd_logs(service_name: str, lines: int = 200) -> str:
