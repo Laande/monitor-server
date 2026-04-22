@@ -1,7 +1,7 @@
 import os
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO, emit
-from utils import get_stats, get_projects_data, get_systemd_logs
+from utils import get_stats, get_projects_data, get_systemd_logs, restart_systemd_service
 from config import SYSTEMD_SERVICES, MONITORED_FILES
 
 app = Flask(__name__)
@@ -27,6 +27,27 @@ def projects():
 def get_service_logs(service_name):
     logs = get_systemd_logs(service_name)
     return jsonify({'logs': logs})
+
+@app.route('/api/service/<service_name>/restart', methods=['POST'])
+def restart_service(service_name):
+    if service_name not in SYSTEMD_SERVICES:
+        return jsonify({
+            'success': False,
+            'message': 'Service not authorized for restart'
+        }), 403
+    
+    data = request.get_json()
+    sudo_password = data.get('password', '')
+    
+    if not sudo_password:
+        return jsonify({
+            'success': False,
+            'message': 'Sudo password is required'
+        }), 400
+    
+    result = restart_systemd_service(service_name, sudo_password)
+    status_code = 200 if result['success'] else 500
+    return jsonify(result), status_code
 
 @socketio.on('connect')
 def handle_connect():

@@ -89,6 +89,64 @@ async function showServiceLogs(serviceName) {
     }, 3000);
 }
 
+async function restartService(serviceName, event) {
+    event.stopPropagation();
+    
+    if (!confirm(`Are you sure you want to restart the service "${serviceName}"?`)) {
+        return;
+    }
+    
+    const password = prompt(`Enter sudo password to restart ${serviceName}:`);
+    if (!password) {
+        return;
+    }
+    
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '⏳ Restarting...';
+    
+    try {
+        const response = await fetch(`/api/service/${serviceName}/restart`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ password: password })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            button.innerHTML = '✅ Restarted';
+            button.style.backgroundColor = '#10b981';
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+                button.style.backgroundColor = '';
+            }, 3000);
+        } else {
+            button.innerHTML = '❌ Error';
+            button.style.backgroundColor = '#ef4444';
+            alert(`Error restarting service: ${result.message}`);
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+                button.style.backgroundColor = '';
+            }, 3000);
+        }
+    } catch (error) {
+        button.innerHTML = '❌ Error';
+        button.style.backgroundColor = '#ef4444';
+        alert(`Error: ${error.message}`);
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+            button.style.backgroundColor = '';
+        }, 3000);
+    }
+}
+
 function renderServices(services) {
     const container = document.getElementById('services-list');
     
@@ -132,9 +190,14 @@ function renderServices(services) {
                     </div>
                     ` : ''}
                 </div>
-                <button class="toggle-logs-btn" onclick="showServiceLogs('${service.name}')">
-                    📋 Show logs
-                </button>
+                <div class="service-actions">
+                    <button class="toggle-logs-btn" onclick="showServiceLogs('${service.name}')">
+                        📋 Logs
+                    </button>
+                    <button class="restart-btn" onclick="restartService('${service.name}', event)">
+                        🔄 Restart
+                    </button>
+                </div>
             </div>
         </div>
         `;
@@ -209,8 +272,6 @@ function renderFiles(files) {
     saveScrollPositions();
     
     container.innerHTML = files.map((file, index) => {
-        const isExpanded = expandedStates.files[index] || false;
-        
         let displayContent = '';
         if (file.content !== null && file.content !== undefined) {
             filesCache[index] = file.content;

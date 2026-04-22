@@ -259,6 +259,49 @@
     box-shadow: 0 4px 12px rgba(0, 217, 255, 0.4);
 }
 
+.service-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+    margin-top: var(--spacing-sm);
+}
+
+.service-actions button {
+    flex: 1;
+    padding: var(--spacing-xs);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    color: white;
+}
+
+.service-actions .toggle-logs-btn {
+    background: var(--gradient-primary);
+    margin-top: 0;
+}
+
+.service-actions .toggle-logs-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 217, 255, 0.4);
+}
+
+.service-actions .restart-btn {
+    background: linear-gradient(135deg, #a31f1fb0 0%, #a31f1fb0 100%);
+}
+
+.service-actions .restart-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+.service-actions .restart-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
 .modal {
     display: none;
     position: fixed;

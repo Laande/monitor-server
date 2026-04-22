@@ -121,6 +121,45 @@ def get_systemd_logs(service_name: str, lines: int = 200) -> str:
         return f"Unable to fetch logs: {str(e)}"
 
 
+def restart_systemd_service(service_name: str, sudo_password: str) -> dict:
+    try:
+        command = f'echo {sudo_password} | sudo -S systemctl restart {service_name}'
+        result = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if result.returncode == 0:
+            return {
+                'success': True,
+                'message': f'Service {service_name} restarted successfully'
+            }
+        else:
+            error_msg = result.stderr.strip()
+            if 'password' in error_msg.lower() or 'sorry' in error_msg.lower():
+                return {
+                    'success': False,
+                    'message': 'Invalid sudo password'
+                }
+            return {
+                'success': False,
+                'message': f'Failed to restart service: {error_msg}'
+            }
+    except subprocess.TimeoutExpired:
+        return {
+            'success': False,
+            'message': 'Restart command timed out'
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'message': f'Error restarting service: {str(e)}'
+        }
+
+
 def get_systemd_status(service_name: str) -> dict:
     try:
         result = subprocess.run(
