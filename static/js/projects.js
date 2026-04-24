@@ -156,6 +156,19 @@ function renderServices(services) {
     }
     
     container.innerHTML = services.map(service => {
+        const gitStatus = service.git_status;
+        let gitButtonHtml = '';
+        
+        if (gitStatus && gitStatus.has_repo) {
+            if (gitStatus.error) {
+                gitButtonHtml = `<button class="git-btn git-error" disabled>⚠️ Git Error</button>`;
+            } else if (gitStatus.has_updates) {
+                gitButtonHtml = `<button class="git-btn git-updates" onclick="gitPullService('${service.name}', event)">⬇️ Pull Updates</button>`;
+            } else if (gitStatus.up_to_date) {
+                gitButtonHtml = `<button class="git-btn git-uptodate" disabled>✅ Up to date</button>`;
+            }
+        }
+        
         return `
         <div class="service-card ${service.active ? 'active' : 'inactive'}">
             <div class="service-header">
@@ -183,6 +196,12 @@ function renderServices(services) {
                         <span class="info-value">${service.uptime}</span>
                     </div>
                     ` : ''}
+                    ${service.working_directory ? `
+                    <div class="info-row">
+                        <span class="info-label">Directory:</span>
+                        <span class="info-value">${service.working_directory}</span>
+                    </div>
+                    ` : ''}
                     ${service.error ? `
                     <div class="info-row error">
                         <span class="info-label">Error:</span>
@@ -191,12 +210,15 @@ function renderServices(services) {
                     ` : ''}
                 </div>
                 <div class="service-actions">
-                    <button class="toggle-logs-btn" onclick="showServiceLogs('${service.name}')">
+                    <button class="toggle-logs-btn full-width" onclick="showServiceLogs('${service.name}')">
                         📋 Logs
                     </button>
-                    <button class="restart-btn" onclick="restartService('${service.name}', event)">
-                        🔄 Restart
-                    </button>
+                    <div class="action-row">
+                        <button class="restart-btn" onclick="restartService('${service.name}', event)">
+                            🔄 Restart
+                        </button>
+                        ${gitButtonHtml}
+                    </div>
                 </div>
             </div>
         </div>
@@ -337,3 +359,57 @@ socket.on('disconnect', () => {
 });
 
 setInterval(updateTimeDisplay, 1000);
+
+
+async function gitPullService(serviceName, event) {
+    event.stopPropagation();
+    
+    if (!confirm(`Pull latest changes for "${serviceName}"?`)) {
+        return;
+    }
+    
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '⏳ Pulling...';
+    
+    try {
+        const response = await fetch(`/api/service/${serviceName}/git-pull`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ password: '' })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            button.innerHTML = '✅ Pulled';
+            button.style.backgroundColor = '#10b981';
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+                button.style.backgroundColor = '';
+            }, 3000);
+        } else {
+            button.innerHTML = '❌ Error';
+            button.style.backgroundColor = '#ef4444';
+            alert(`Error pulling changes: ${result.message}`);
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+                button.style.backgroundColor = '';
+            }, 3000);
+        }
+    } catch (error) {
+        button.innerHTML = '❌ Error';
+        button.style.backgroundColor = '#ef4444';
+        alert(`Error: ${error.message}`);
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+            button.style.backgroundColor = '';
+        }, 3000);
+    }
+}

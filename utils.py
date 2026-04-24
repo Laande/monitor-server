@@ -185,6 +185,11 @@ def get_systemd_status(service_name: str) -> dict:
 
         date = details.get('ActiveEnterTimestamp', '0')
         uptime_formatted = " ".join(date.split()[1:3])
+        
+        working_dir = details.get('WorkingDirectory', '')
+        git_status = None
+        if working_dir and working_dir != '':
+            git_status = check_git_status(working_dir)
 
         return {
             'name': service_name,
@@ -192,7 +197,9 @@ def get_systemd_status(service_name: str) -> dict:
             'status': details.get('ActiveState', 'unknown'),
             'uptime': uptime_formatted,
             'memory': details.get('MemoryCurrent', '0'),
-            'description': details.get('Description', service_name)
+            'description': details.get('Description', service_name),
+            'working_directory': working_dir,
+            'git_status': git_status
         }
     except Exception as e:
         return {
@@ -282,3 +289,100 @@ def get_projects_data(systemd_services: list, monitored_files: list, force_conte
         'services': services,
         'files': files
     }
+
+
+def check_git_status(repo_path: str) -> dict:
+    try:
+        if not os.path.exists(repo_path):
+            return {
+                'has_repo': False,
+                'error': 'Repository path does not exist'
+            }
+        
+        git_dir = os.path.join(repo_path, '.git')
+        if not os.path.exists(git_dir):
+            return {
+                'has_repo': False,
+                'error': 'Not a git repository'
+            }
+        
+        fetch_result = subprocess.run(
+            ['git', 'fetch'],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if fetch_result.returncode != 0:
+            return {
+                'has_repo': True,
+                'error': f'Failed to fetch: {fetch_result.stderr}'
+            }
+        
+        status_result = subprocess.run(
+            ['git', 'status', '-uno'],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        
+        is_up_to_date = 'Your branch is up to date' in status_result.stdout
+        has_updates = 'Your branch is behind' in status_result.stdout
+        
+        return {
+            'has_repo': True,
+            'up_to_date': is_up_to_date,
+            'has_updates': has_updates,
+            'status': status_result.stdout
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            'has_repo': True,
+            'error': 'Git command timed out'
+        }
+    except Exception as e:
+        return {
+            'has_repo': True,
+            'error': str(e)
+        }
+
+
+def git_pull_repo(repo_path: str) -> dict:
+    try:
+        if not os.path.exists(repo_path):
+            return {
+                'success': False,
+                'message': 'Repository path does not exist'
+            }
+        
+        result = subprocess.run(
+            ['git', 'pull'],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        if result.returncode == 0:
+            return {
+                'success': True,
+                'message': 'Git pull successful',
+                'output': result.stdout
+            }
+        else:
+            return {
+                'success': False,
+                'message': f'Git pull failed: {result.stderr}'
+            }
+    except subprocess.TimeoutExpired:
+        return {
+            'success': False,
+            'message': 'Git pull timed out'
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'message': f'Error during git pull: {str(e)}'
+        }

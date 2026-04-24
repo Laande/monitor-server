@@ -261,6 +261,7 @@
 
 .service-actions {
     display: flex;
+    flex-direction: column;
     gap: var(--spacing-xs);
     margin-top: var(--spacing-sm);
 }
@@ -379,4 +380,46 @@
     padding: var(--spacing-md);
     border-radius: var(--radius-sm);
     border: 1px solid var(--color-border);
+}
+
+
+.service-actions .full-width {
+    width: 100%;
+}
+
+.service-actions .action-row {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+.service-actions .action-row button {
+    flex: 1;
+}
+
+.service-actions .git-btn {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+.service-actions .git-btn.git-uptodate {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    opacity: 0.7;
+}
+
+.service-actions .git-btn.git-updates {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.service-actions .git-btn.git-updates:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.service-actions .git-btn.git-error {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    opacity: 0.7;
+}
+
+.service-actions .git-btn:disabled {
+    cursor: not-allowed;
+    transform: none;
 }

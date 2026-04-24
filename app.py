@@ -1,7 +1,7 @@
 import os
 from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO, emit
-from utils import get_stats, get_projects_data, get_systemd_logs, restart_systemd_service
+from utils import get_stats, get_projects_data, get_systemd_logs, restart_systemd_service, git_pull_repo, get_systemd_status
 from config import SYSTEMD_SERVICES, MONITORED_FILES
 
 app = Flask(__name__)
@@ -46,6 +46,27 @@ def restart_service(service_name):
         }), 400
     
     result = restart_systemd_service(service_name, sudo_password)
+    status_code = 200 if result['success'] else 500
+    return jsonify(result), status_code
+
+@app.route('/api/service/<service_name>/git-pull', methods=['POST'])
+def git_pull_service(service_name):
+    if service_name not in SYSTEMD_SERVICES:
+        return jsonify({
+            'success': False,
+            'message': 'Service not authorized'
+        }), 403
+    
+    service_info = get_systemd_status(service_name)
+    working_dir = service_info.get('working_directory', '')
+    
+    if not working_dir:
+        return jsonify({
+            'success': False,
+            'message': 'No working directory found for this service'
+        }), 400
+    
+    result = git_pull_repo(working_dir)
     status_code = 200 if result['success'] else 500
     return jsonify(result), status_code
 
