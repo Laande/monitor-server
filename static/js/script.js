@@ -1,5 +1,24 @@
-const socket = io();
 let lastUpdateTime = null;
+
+function loadCachedStats() {
+    const cached = localStorage.getItem('stats_data');
+    const timestamp = parseInt(localStorage.getItem('stats_timestamp'), 10);
+
+    if (cached) {
+        try {
+            const data = JSON.parse(cached);
+            updateUI(data, false);
+            lastUpdateTime = Number.isNaN(timestamp) ? Date.now() : timestamp;
+        } catch (error) {
+            console.warn('Failed to parse cached stats:', error);
+        }
+    }
+}
+
+function saveStatsCache(data) {
+    localStorage.setItem('stats_data', JSON.stringify(data));
+    localStorage.setItem('stats_timestamp', Date.now().toString());
+}
 
 function updateTimeDisplay() {
     document.getElementById('last-update').textContent = getTimeAgo(lastUpdateTime);
@@ -47,7 +66,7 @@ function updateDisks(disks) {
     }
 }
 
-function updateUI(data) {
+function updateUI(data, cache = true) {
     // CPU
     document.getElementById('cpu-percent').textContent = data.cpu.percent.toFixed(1);
     document.getElementById('cpu-progress').style.width = data.cpu.percent + '%';
@@ -86,11 +105,18 @@ function updateUI(data) {
     
     lastUpdateTime = Date.now();
     updateTimeDisplay();
+
+    if (cache) {
+        saveStatsCache(data);
+    }
 }
 
+loadCachedStats();
 
-socket.on('stats_update', (data) => {
-    updateUI(data);
+connectSharedSocket((message) => {
+    if (message.type === 'stats_update') {
+        updateUI(message.data);
+    }
 });
 
 const numDisks = parseInt(localStorage.getItem('numDisks')) || 1;

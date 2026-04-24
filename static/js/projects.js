@@ -1,4 +1,3 @@
-const socket = io();
 let lastUpdateTime = null;
 let expandedStates = {
     services: {},
@@ -346,16 +345,10 @@ function updateProjects(data) {
 
 loadCachedData();
 
-socket.on('connect', () => {
-    console.log('WebSocket connected');
-});
-
-socket.on('projects_update', (data) => {
-    updateProjects(data);
-});
-
-socket.on('disconnect', () => {
-    console.log('WebSocket disconnected');
+connectSharedSocket((message) => {
+    if (message.type === 'projects_update') {
+        updateProjects(message.data);
+    }
 });
 
 setInterval(updateTimeDisplay, 1000);
