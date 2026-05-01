@@ -32,3 +32,56 @@ function formatUptime(seconds) {
     if (hours > 0) return `${hours}h ${minutes}m`;
     return `${minutes}m`;
 }
+
+const CacheManager = {
+    set: function(key, value, expirationMs = 0) {
+        try {
+            const cacheData = {
+                value: value,
+                timestamp: Date.now(),
+                expiration: expirationMs > 0 ? Date.now() + expirationMs : 0
+            };
+            localStorage.setItem(`cache_${key}`, JSON.stringify(cacheData));
+        } catch (error) {
+            console.warn(`Failed to set cache for key "${key}":`, error);
+        }
+    },
+
+    get: function(key) {
+        try {
+            const cached = localStorage.getItem(`cache_${key}`);
+            if (!cached) return null;
+
+            const cacheData = JSON.parse(cached);
+            
+            if (cacheData.expiration > 0 && cacheData.expiration < Date.now()) {
+                localStorage.removeItem(`cache_${key}`);
+                return null;
+            }
+            
+            return cacheData.value;
+        } catch (error) {
+            console.warn(`Failed to get cache for key "${key}":`, error);
+            return null;
+        }
+    },
+
+    getWithMetadata: function(key) {
+        try {
+            const cached = localStorage.getItem(`cache_${key}`);
+            if (!cached) return null;
+
+            const cacheData = JSON.parse(cached);
+            
+            if (cacheData.expiration > 0 && cacheData.expiration < Date.now()) {
+                localStorage.removeItem(`cache_${key}`);
+                return null;
+            }
+            
+            return cacheData;
+        } catch (error) {
+            console.warn(`Failed to get cache metadata for key "${key}":`, error);
+            return null;
+        }
+    }
+};

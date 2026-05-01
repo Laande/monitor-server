@@ -1,23 +1,24 @@
 let lastUpdateTime = null;
+const CACHE_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
 
 function loadCachedStats() {
-    const cached = localStorage.getItem('stats_data');
-    const timestamp = parseInt(localStorage.getItem('stats_timestamp'), 10);
+    const cached = CacheManager.get('stats_data');
+    const metadata = CacheManager.getWithMetadata('stats_data');
 
     if (cached) {
         try {
-            const data = JSON.parse(cached);
-            updateUI(data, false);
-            lastUpdateTime = Number.isNaN(timestamp) ? Date.now() : timestamp;
+            updateUI(cached, false);
+            if (metadata && metadata.timestamp) {
+                lastUpdateTime = metadata.timestamp;
+            }
         } catch (error) {
-            console.warn('Failed to parse cached stats:', error);
+            console.warn('Failed to load cached stats:', error);
         }
     }
 }
 
 function saveStatsCache(data) {
-    localStorage.setItem('stats_data', JSON.stringify(data));
-    localStorage.setItem('stats_timestamp', Date.now().toString());
+    CacheManager.set('stats_data', data, CACHE_EXPIRATION_MS);
 }
 
 function updateTimeDisplay() {
@@ -29,7 +30,8 @@ function updateDisks(disks) {
     const disksGrid = document.getElementById('disks-grid');
     if (!disksGrid) return;
 
-    localStorage.setItem('numDisks', disks.length);
+    CacheManager.set('numDisks', disks.length);
+    CacheManager.set('disks_data', disks, CACHE_EXPIRATION_MS);
 
     if (disks.length === 0) {
         disksGrid.innerHTML = '';
@@ -111,17 +113,6 @@ function updateUI(data, cache = true) {
     }
 }
 
-loadCachedStats();
-
-connectSharedSocket((message) => {
-    if (message.type === 'stats_update') {
-        updateUI(message.data);
-    }
-});
-
-const numDisks = parseInt(localStorage.getItem('numDisks')) || 1;
-generateDiskPlaceholders(numDisks);
-
 function generateDiskPlaceholders(count) {
     const disksGrid = document.getElementById('disks-grid');
     if (!disksGrid) return;
@@ -160,3 +151,13 @@ function generateDiskPlaceholders(count) {
     }
 }
 
+const numDisks = CacheManager.get('numDisks') || 1;
+generateDiskPlaceholders(numDisks);
+
+loadCachedStats();
+
+connectSharedSocket((message) => {
+    if (message.type === 'stats_update') {
+        updateUI(message.data);
+    }
+});

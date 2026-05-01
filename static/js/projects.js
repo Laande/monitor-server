@@ -4,6 +4,8 @@ let expandedStates = {
     files: {}
 };
 
+const CACHE_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
+
 function updateTimeDisplay() {
     document.getElementById('last-update').textContent = getTimeAgo(lastUpdateTime);
 }
@@ -15,10 +17,9 @@ function formatMemory(memoryStr) {
 }
 
 function loadCachedData() {
-    const cached = localStorage.getItem('projects_data');
+    const cached = CacheManager.get('projects_data');
     if (cached) {
-        const data = JSON.parse(cached);
-        updateProjects(data);
+        updateProjects(cached);
     }
 }
 
@@ -336,7 +337,7 @@ function renderFiles(files) {
 }
 
 function updateProjects(data) {
-    localStorage.setItem('projects_data', JSON.stringify(data));
+    CacheManager.set('projects_data', data, CACHE_EXPIRATION_MS);
     renderServices(data.services);
     renderFiles(data.files);
     lastUpdateTime = Date.now();
