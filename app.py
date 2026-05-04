@@ -7,12 +7,20 @@ from config import SYSTEMD_SERVICES, MONITORED_FILES
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+latest_stats = get_stats()
+latest_projects = get_projects_data(SYSTEMD_SERVICES, MONITORED_FILES, force_content=True)
+
+def update_latest_data():
+    global latest_stats, latest_projects
+    latest_stats = get_stats()
+    latest_projects = get_projects_data(SYSTEMD_SERVICES, MONITORED_FILES, force_content=True)
+
+
 def background_loop():
     while True:
-        stats = get_stats()
-        projects_data = get_projects_data(SYSTEMD_SERVICES, MONITORED_FILES)
-        socketio.emit('stats_update', stats, namespace='/')
-        socketio.emit('projects_update', projects_data, namespace='/')
+        update_latest_data()
+        socketio.emit('stats_update', latest_stats, namespace='/')
+        socketio.emit('projects_update', latest_projects, namespace='/')
         socketio.sleep(2.5)
 
 @app.route('/')
@@ -72,8 +80,21 @@ def git_pull_service(service_name):
 
 @socketio.on('connect')
 def handle_connect():
-    emit('stats_update', get_stats())
-    emit('projects_update', get_projects_data(SYSTEMD_SERVICES, MONITORED_FILES, force_content=True))
+    emit('stats_update', latest_stats)
+    emit('projects_update', latest_projects)
+
+@socketio.on('request_update')
+def handle_request_update():
+    emit('stats_update', latest_stats)
+    emit('projects_update', latest_projects)
+
+@app.route('/api/stats')
+def api_stats():
+    return jsonify(latest_stats)
+
+@app.route('/api/projects')
+def api_projects():
+    return jsonify(latest_projects)
 
 if __name__ == '__main__':
     socketio.start_background_task(background_loop)

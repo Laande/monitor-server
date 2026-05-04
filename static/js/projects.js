@@ -23,6 +23,17 @@ function loadCachedData() {
     }
 }
 
+async function fetchInitialProjects() {
+    try {
+        const response = await fetch('/api/projects');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        updateProjects(data);
+    } catch (error) {
+        console.warn('Initial projects fetch failed:', error);
+    }
+}
+
 function closeLogsModal() {
     const modal = document.getElementById('logs-modal');
     modal.style.display = 'none';
@@ -345,6 +356,7 @@ function updateProjects(data) {
 }
 
 loadCachedData();
+fetchInitialProjects();
 
 connectSharedSocket((message) => {
     if (message.type === 'projects_update') {

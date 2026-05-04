@@ -21,6 +21,17 @@ function saveStatsCache(data) {
     CacheManager.set('stats_data', data, CACHE_EXPIRATION_MS);
 }
 
+async function fetchInitialStats() {
+    try {
+        const response = await fetch('/api/stats');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        updateUI(data);
+    } catch (error) {
+        console.warn('Initial stats fetch failed:', error);
+    }
+}
+
 function updateTimeDisplay() {
     document.getElementById('last-update').textContent = getTimeAgo(lastUpdateTime);
 }
@@ -155,6 +166,7 @@ const numDisks = CacheManager.get('numDisks') || 1;
 generateDiskPlaceholders(numDisks);
 
 loadCachedStats();
+fetchInitialStats();
 
 connectSharedSocket((message) => {
     if (message.type === 'stats_update') {
