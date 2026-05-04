@@ -1,4 +1,4 @@
-importScripts('https://cdn.socket.io/4.5.4/socket.io.min.js');
+importScripts('/static/js/socket.io.min.js');
 
 let socket = null;
 let lastStats = null;
