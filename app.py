@@ -1,11 +1,12 @@
 import os
+import time
 from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO, emit
 from utils import get_stats, get_projects_data, get_systemd_logs, restart_systemd_service, git_pull_repo, get_systemd_status
 from config import SYSTEMD_SERVICES, MONITORED_FILES
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 latest_stats = get_stats()
 latest_projects = get_projects_data(SYSTEMD_SERVICES, MONITORED_FILES, force_content=True)
@@ -21,7 +22,7 @@ def background_loop():
         update_latest_data()
         socketio.emit('stats_update', latest_stats, namespace='/')
         socketio.emit('projects_update', latest_projects, namespace='/')
-        socketio.sleep(2.5)
+        time.sleep(2.5)
 
 @app.route('/')
 def index():
