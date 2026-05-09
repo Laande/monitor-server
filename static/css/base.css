@@ -37,7 +37,7 @@ header {
 }
 
 header h1 {
-    color: var(--color-primary);
+    color: white;
     font-size: var(--font-4xl);
     text-shadow: var(--shadow-glow);
 }
@@ -71,7 +71,7 @@ nav a {
 }
 
 nav a:hover {
-    background: rgba(107, 122, 158, 0.15);
+    background: rgba(84, 128, 212, 0.15);
     color: var(--color-primary);
 }
 

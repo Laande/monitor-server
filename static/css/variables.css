@@ -1,22 +1,22 @@
 :root {
-    --color-primary: #6b7a9e;
-    --color-secondary: #546285;
-    --color-success: #4a9e6e;
-    --color-error: #c94a4a;
-    --color-text-primary: #e0e0e0;
-    --color-text-secondary: #b0b0b0;
-    --color-bg-dark: #1a1a2e;
-    --color-bg-card: #1e1e2e;
-    --color-bg-darker: #252538;
-    --color-border: #2a2a3e;
+    --color-primary: #5480d4;
+    --color-secondary: #4268b0;
+    --color-success: #3fb57f;
+    --color-error: #e4534a;
+    --color-text-primary: #e4e6ea;
+    --color-text-secondary: #9ca3b0;
+    --color-bg-dark: #0c0e17;
+    --color-bg-card: #151822;
+    --color-bg-darker: #1c2030;
+    --color-border: #232738;
     
     --gradient-primary: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
     --gradient-progress: linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 100%);
     
-    --shadow-card: 0 4px 6px rgba(0, 0, 0, 0.3);
-    --shadow-hover: 0 8px 16px rgba(0, 0, 0, 0.35);
-    --shadow-glow: 0 0 20px rgba(107, 122, 158, 0.2);
-    --shadow-glow-strong: 0 0 20px rgba(107, 122, 158, 0.4);
+    --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.4);
+    --shadow-glow: 0 0 20px rgba(84, 128, 212, 0.2);
+    --shadow-glow-strong: 0 0 20px rgba(84, 128, 212, 0.35);
     
     --spacing-xs: 10px;
     --spacing-sm: 15px;
