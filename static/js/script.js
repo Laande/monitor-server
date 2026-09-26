@@ -45,17 +45,14 @@ function updateDisks(disks) {
     CacheManager.set('disks_data', disks, CACHE_EXPIRATION_MS);
 
     if (disks.length === 0) {
-        disksGrid.innerHTML = '';
+        SmoothRender.render(disksGrid, '');
         disksGrid.style.display = 'none';
     } else {
         disksGrid.style.display = 'contents';
-        disksGrid.innerHTML = '';
-
-        disks.forEach(disk => {
-            const bodyHtml = `
-                <div class="card">
+        SmoothRender.render(disksGrid, disks.map(disk => `
+            <div class="card" data-key="disk:${escapeHtml(disk.mountpoint)}">
                 <div class="card-header">
-                    <h2>💾 ${disk.mountpoint}</h2>
+                    <h2>💾 ${escapeHtml(disk.mountpoint)}</h2>
                 </div>
                 <div class="card-body">
                     <div class="metric-main">
@@ -71,11 +68,8 @@ function updateDisks(disks) {
                         <div>Total: ${formatBytes(disk.total)}</div>
                     </div>
                 </div>
-                </div>
-            `;
-
-            disksGrid.innerHTML += bodyHtml;
-        });
+            </div>
+        `).join(''));
     }
 }
 
@@ -129,36 +123,31 @@ function generateDiskPlaceholders(count) {
     if (!disksGrid) return;
 
     if (count === 0) {
-        disksGrid.innerHTML = '';
+        SmoothRender.render(disksGrid, '');
         disksGrid.style.display = 'none';
     } else {
         disksGrid.style.display = 'contents';
-        disksGrid.innerHTML = '';
-
-        for (let i = 0; i < count; i++) {
-            const placeholderHtml = `
-                <div class="card">
-                    <div class="card-header">
-                        <h2>💾 --</h2>
+        SmoothRender.render(disksGrid, Array.from({ length: count }, (_, i) => `
+            <div class="card" data-key="disk-placeholder-${i}">
+                <div class="card-header">
+                    <h2>💾 --</h2>
+                </div>
+                <div class="card-body">
+                    <div class="metric-main">
+                        <span class="value">--</span>
+                        <span class="unit">%</span>
                     </div>
-                    <div class="card-body">
-                        <div class="metric-main">
-                            <span class="value">--</span>
-                            <span class="unit">%</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 0%"></div>
-                        </div>
-                        <div class="metric-details">
-                            <div>Used: --</div>
-                            <div>Free: --</div>
-                            <div>Total: --</div>
-                        </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="metric-details">
+                        <div>Used: --</div>
+                        <div>Free: --</div>
+                        <div>Total: --</div>
                     </div>
                 </div>
-            `;
-            disksGrid.innerHTML += placeholderHtml;
-        }
+            </div>
+        `).join(''));
     }
 }
 

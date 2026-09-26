@@ -1,10 +1,16 @@
 let lastUpdateTime = null;
+let logsRefreshInterval = null;
+let currentLogService = null;
+let logsRequestToken = 0;
+let lastServices = null;
+let projectsCacheStored = false;
 let expandedStates = {
     services: {},
     files: {}
 };
 
 const CACHE_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
+const transientButtons = new Map();
 
 function updateTimeDisplay() {
     document.getElementById('last-update').textContent = getTimeAgo(lastUpdateTime);
@@ -43,61 +49,100 @@ function closeLogsModal() {
         logsRefreshInterval = null;
     }
     currentLogService = null;
+    logsRequestToken++;
 }
 
-let logsRefreshInterval = null;
-let currentLogService = null;
+function renderLogsError(message) {
+    const modalContent = document.getElementById('modal-content');
+    const box = document.createElement('div');
+    box.className = 'file-error';
+    box.textContent = `Failed to load logs: ${message}`;
+    modalContent.replaceChildren(box);
+}
+
+function ensureLogHost() {
+    const modalContent = document.getElementById('modal-content');
+    let pre = modalContent.querySelector('pre[data-text]');
+    if (!pre) {
+        pre = document.createElement('pre');
+        pre.setAttribute('data-text', '');
+        modalContent.replaceChildren(pre);
+    }
+    return pre;
+}
 
 async function fetchAndUpdateLogs(serviceName) {
     const modalContent = document.getElementById('modal-content');
-    const preElement = modalContent.querySelector('pre');
-    
-    let previousScrollTop = 0;
-    let wasAtBottom = false;
-    
-    if (preElement) {
-        previousScrollTop = modalContent.scrollTop;
-        const scrollHeight = modalContent.scrollHeight;
-        const clientHeight = modalContent.clientHeight;
-        wasAtBottom = (scrollHeight - previousScrollTop - clientHeight) < 50;
-    }
-    
+    const preElement = ensureLogHost();
+
+    const previousScrollTop = modalContent.scrollTop;
+    const wasAtBottom =
+        (modalContent.scrollHeight - previousScrollTop - modalContent.clientHeight) < 50;
+
+    const token = ++logsRequestToken;
+
     try {
         const response = await fetch(`/api/service/${serviceName}/logs`);
         const data = await response.json();
-        modalContent.innerHTML = `<pre>${data.logs}</pre>`;
-        
-        if (wasAtBottom) {
-            modalContent.scrollTop = modalContent.scrollHeight;
-        } else {
-            modalContent.scrollTop = previousScrollTop;
-        }
+
+        if (token !== logsRequestToken) return;
+
+        SmoothRender.text(preElement, data.logs);
+
+        modalContent.scrollTop = wasAtBottom ? modalContent.scrollHeight : previousScrollTop;
     } catch (error) {
-        modalContent.innerHTML = `<div class="file-error">Failed to load logs: ${error.message}</div>`;
+        if (token !== logsRequestToken) return;
+        renderLogsError(error.message);
     }
 }
 
 async function showServiceLogs(serviceName) {
     const modal = document.getElementById('logs-modal');
     const modalTitle = document.getElementById('modal-title');
-    const modalContent = document.getElementById('modal-content');
-    
+
     currentLogService = serviceName;
     modalTitle.textContent = `Logs - ${serviceName}`;
-    modalContent.innerHTML = '<div style="text-align: center; padding: 40px;">⏳ Loading...</div>';
+
+    const pre = ensureLogHost();
+    pre.textContent = '⏳ Loading...';
+    SmoothRender.invalidate(pre);
     modal.style.display = 'flex';
-    
+
     if (logsRefreshInterval) {
         clearInterval(logsRefreshInterval);
+        logsRefreshInterval = null;
     }
-    
+
     await fetchAndUpdateLogs(serviceName);
-    
+
+    if (currentLogService !== serviceName) return;
+
     logsRefreshInterval = setInterval(() => {
         if (currentLogService === serviceName) {
             fetchAndUpdateLogs(serviceName);
         }
     }, 3000);
+}
+
+function applyTransientButtons() {
+    document.querySelectorAll('#services-list [data-btn-key]').forEach(button => {
+        const state = transientButtons.get(button.dataset.btnKey);
+        if (!state) return;
+        button.textContent = state.text;
+        button.disabled = true;
+        button.style.backgroundColor = state.color;
+    });
+}
+
+function setButtonState(btnKey, text, color) {
+    if (text === null) {
+        transientButtons.delete(btnKey);
+        SmoothRender.invalidate(document.getElementById('services-list'));
+        renderServices(lastServices);
+        return;
+    }
+    transientButtons.set(btnKey, { text: text, color: color });
+    applyTransientButtons();
 }
 
 async function restartService(serviceName, event) {
@@ -112,10 +157,8 @@ async function restartService(serviceName, event) {
         return;
     }
     
-    const button = event.target;
-    const originalText = button.innerHTML;
-    button.disabled = true;
-    button.innerHTML = '⏳ Restarting...';
+    const btnKey = `restart:${serviceName}`;
+    setButtonState(btnKey, '⏳ Restarting...', '');
     
     try {
         const response = await fetch(`/api/service/${serviceName}/restart`, {
@@ -129,71 +172,55 @@ async function restartService(serviceName, event) {
         const result = await response.json();
         
         if (result.success) {
-            button.innerHTML = '✅ Restarted';
-            button.style.backgroundColor = '#10b981';
-            setTimeout(() => {
-                button.innerHTML = originalText;
-                button.disabled = false;
-                button.style.backgroundColor = '';
-            }, 3000);
+            setButtonState(btnKey, '✅ Restarted', '#10b981');
         } else {
-            button.innerHTML = '❌ Error';
-            button.style.backgroundColor = '#ef4444';
+            setButtonState(btnKey, '❌ Error', '#ef4444');
             alert(`Error restarting service: ${result.message}`);
-            setTimeout(() => {
-                button.innerHTML = originalText;
-                button.disabled = false;
-                button.style.backgroundColor = '';
-            }, 3000);
         }
     } catch (error) {
-        button.innerHTML = '❌ Error';
-        button.style.backgroundColor = '#ef4444';
+        setButtonState(btnKey, '❌ Error', '#ef4444');
         alert(`Error: ${error.message}`);
-        setTimeout(() => {
-            button.innerHTML = originalText;
-            button.disabled = false;
-            button.style.backgroundColor = '';
-        }, 3000);
     }
+    
+    setTimeout(() => setButtonState(btnKey, null), 3000);
 }
 
 function renderServices(services) {
     const container = document.getElementById('services-list');
+    lastServices = services;
     
     if (!services || services.length === 0) {
-        container.innerHTML = '<div class="empty-state">No services configured</div>';
-        return;
+        return SmoothRender.render(container, '<div class="empty-state">No services configured</div>');
     }
     
-    container.innerHTML = services.map(service => {
+    const html = services.map(service => {
         const gitStatus = service.git_status;
         let gitButtonHtml = '';
         
         if (gitStatus && gitStatus.has_repo) {
             if (gitStatus.error) {
-                gitButtonHtml = `<button class="git-btn git-error" disabled>⚠️ Git Error</button>`;
+                gitButtonHtml = `<button class="git-btn git-error" data-btn-key="git:${escapeAttr(service.name)}" disabled>⚠️ Git Error</button>`;
             } else if (gitStatus.has_updates) {
-                gitButtonHtml = `<button class="git-btn git-updates" onclick="gitPullService('${service.name}', event)">⬇️ Pull Updates</button>`;
+                gitButtonHtml = `<button class="git-btn git-updates" data-btn-key="git:${escapeAttr(service.name)}" onclick="gitPullService('${escapeAttr(service.name)}', event)">⬇️ Pull Updates</button>`;
             } else if (gitStatus.up_to_date) {
-                gitButtonHtml = `<button class="git-btn git-uptodate" disabled>✅ Up to date</button>`;
+                gitButtonHtml = `<button class="git-btn git-uptodate" data-btn-key="git:${escapeAttr(service.name)}" disabled>✅ Up to date</button>`;
             }
         }
         
         return `
-        <div class="service-card ${service.active ? 'active' : 'inactive'}">
+        <div class="service-card ${service.active ? 'active' : 'inactive'}" data-key="service:${escapeAttr(service.name)}">
             <div class="service-header">
                 <div class="service-status">
                     <span class="status-dot ${service.active ? 'active' : 'inactive'}"></span>
-                    <span class="service-name">${service.name}</span>
+                    <span class="service-name">${escapeHtml(service.name)}</span>
                 </div>
-                <span class="service-state">${service.status}</span>
+                <span class="service-state">${escapeHtml(service.status)}</span>
             </div>
             <div class="service-body">
                 <div class="service-info">
                     <div class="info-row">
                         <span class="info-label">Description:</span>
-                        <span class="info-value">${service.description || 'N/A'}</span>
+                        <span class="info-value">${escapeHtml(service.description || 'N/A')}</span>
                     </div>
                     ${service.memory ? `
                     <div class="info-row">
@@ -204,28 +231,28 @@ function renderServices(services) {
                     ${service.uptime && service.uptime !== 'N/A' ? `
                     <div class="info-row">
                         <span class="info-label">Started:</span>
-                        <span class="info-value">${service.uptime}</span>
+                        <span class="info-value">${escapeHtml(service.uptime)}</span>
                     </div>
                     ` : ''}
                     ${service.working_directory ? `
                     <div class="info-row">
                         <span class="info-label">Directory:</span>
-                        <span class="info-value">${service.working_directory}</span>
+                        <span class="info-value">${escapeHtml(service.working_directory)}</span>
                     </div>
                     ` : ''}
                     ${service.error ? `
                     <div class="info-row error">
                         <span class="info-label">Error:</span>
-                        <span class="info-value">${service.error}</span>
+                        <span class="info-value">${escapeHtml(service.error)}</span>
                     </div>
                     ` : ''}
                 </div>
                 <div class="service-actions">
-                    <button class="toggle-logs-btn full-width" onclick="showServiceLogs('${service.name}')">
+                    <button class="toggle-logs-btn full-width" onclick="showServiceLogs('${escapeAttr(service.name)}')">
                         📋 Logs
                     </button>
                     <div class="action-row">
-                        <button class="restart-btn" onclick="restartService('${service.name}', event)">
+                        <button class="restart-btn" data-btn-key="restart:${escapeAttr(service.name)}" onclick="restartService('${escapeAttr(service.name)}', event)">
                             🔄 Restart
                         </button>
                         ${gitButtonHtml}
@@ -235,6 +262,10 @@ function renderServices(services) {
         </div>
         `;
     }).join('');
+    
+    const changed = SmoothRender.render(container, html);
+    applyTransientButtons();
+    return changed;
 }
 
 function toggleFileContent(index, event) {
@@ -262,58 +293,22 @@ function toggleFileContent(index, event) {
 }
 
 let filesCache = {};
-let fileScrollPositions = {};
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function saveScrollPositions() {
-    const container = document.getElementById('files-list');
-    const fileCards = container.querySelectorAll('.file-card');
-    
-    fileCards.forEach((card, index) => {
-        const contentDiv = card.querySelector('.file-content');
-        if (contentDiv) {
-            fileScrollPositions[index] = contentDiv.scrollTop;
-        }
-    });
-}
-
-function restoreScrollPositions() {
-    const container = document.getElementById('files-list');
-    const fileCards = container.querySelectorAll('.file-card');
-    
-    fileCards.forEach((card, index) => {
-        const contentDiv = card.querySelector('.file-content');
-        if (contentDiv && fileScrollPositions[index] !== undefined) {
-            contentDiv.scrollTop = fileScrollPositions[index];
-        }
-    });
+function escapeAttr(text) {
+    return escapeHtml(String(text)).replace(/`/g, '&#96;');
 }
 
 function renderFiles(files) {
     const container = document.getElementById('files-list');
     
     if (!files || files.length === 0) {
-        container.innerHTML = '<div class="empty-state">No files configured</div>';
-        return;
+        return SmoothRender.render(container, '<div class="empty-state">No files configured</div>');
     }
     
-    saveScrollPositions();
-    
-    container.innerHTML = files.map((file, index) => {
-        let displayContent = '';
+    const html = files.map((file, index) => {
         if (file.content !== null && file.content !== undefined) {
             filesCache[index] = file.content;
-            displayContent = file.content;
-        } else if (filesCache[index]) {
-            displayContent = filesCache[index];
         }
-        
-        const escapedContent = escapeHtml(displayContent);
         
         const defaultExpanded = file.expand !== false;
         const currentlyExpanded = expandedStates.files[index] !== undefined ? expandedStates.files[index] : defaultExpanded;
@@ -321,36 +316,52 @@ function renderFiles(files) {
         return `
         <div class="file-card ${file.exists ? 'exists' : 'missing'} ${currentlyExpanded ? 'expanded' : ''}" 
              id="file-card-${index}"
+             data-key="file:${escapeAttr(file.path || file.name)}"
              ${file.exists ? `onclick="toggleFileContent(${index}, event)" style="cursor: pointer;"` : ''}>
             <div class="file-header">
                 <div class="file-title">
                     <span class="file-icon">${file.exists ? '📄' : '❌'}</span>
-                    <span class="file-name">${file.name}</span>
+                    <span class="file-name">${escapeHtml(file.name)}</span>
                 </div>
                 ${file.exists ? `<span class="file-size">${formatBytes(file.size)}</span>` : ''}
             </div>
-            <div class="file-path">${file.path}</div>
+            <div class="file-path">${escapeHtml(file.path)}</div>
             ${file.exists ? `
                 <div class="file-modified">
                     Last modified: ${new Date(file.modified * 1000).toLocaleString()}
                 </div>
                 <div class="file-content" id="file-content-${index}" style="display: ${currentlyExpanded ? 'block' : 'none'};">
-                    <pre>${escapedContent}</pre>
+                    <pre data-text></pre>
                 </div>
             ` : `
-                <div class="file-error">${file.error || 'File not found'}</div>
+                <div class="file-error">${escapeHtml(file.error || 'File not found')}</div>
             `}
         </div>
         `;
     }).join('');
     
-    setTimeout(restoreScrollPositions, 0);
+    let changed = SmoothRender.render(container, html);
+    
+    files.forEach((file, index) => {
+        if (!file.exists) return;
+        const pre = document.getElementById(`file-content-${index}`)?.firstElementChild;
+        if (pre) {
+            changed = SmoothRender.text(pre, filesCache[index] || '') || changed;
+        }
+    });
+    
+    return changed;
 }
 
 function updateProjects(data) {
-    CacheManager.set('projects_data', data, CACHE_EXPIRATION_MS);
-    renderServices(data.services);
-    renderFiles(data.files);
+    const servicesChanged = renderServices(data.services);
+    const filesChanged = renderFiles(data.files);
+    
+    if (servicesChanged || filesChanged || !projectsCacheStored) {
+        CacheManager.set('projects_data', data, CACHE_EXPIRATION_MS);
+        projectsCacheStored = true;
+    }
+    
     lastUpdateTime = Date.now();
     updateTimeDisplay();
 }
@@ -374,10 +385,8 @@ async function gitPullService(serviceName, event) {
         return;
     }
     
-    const button = event.target;
-    const originalText = button.innerHTML;
-    button.disabled = true;
-    button.innerHTML = '⏳ Pulling...';
+    const btnKey = `git:${serviceName}`;
+    setButtonState(btnKey, '⏳ Pulling...', '');
     
     try {
         const response = await fetch(`/api/service/${serviceName}/git-pull`, {
@@ -391,31 +400,15 @@ async function gitPullService(serviceName, event) {
         const result = await response.json();
         
         if (result.success) {
-            button.innerHTML = '✅ Pulled';
-            button.style.backgroundColor = '#10b981';
-            setTimeout(() => {
-                button.innerHTML = originalText;
-                button.disabled = false;
-                button.style.backgroundColor = '';
-            }, 3000);
+            setButtonState(btnKey, '✅ Pulled', '#10b981');
         } else {
-            button.innerHTML = '❌ Error';
-            button.style.backgroundColor = '#ef4444';
+            setButtonState(btnKey, '❌ Error', '#ef4444');
             alert(`Error pulling changes: ${result.message}`);
-            setTimeout(() => {
-                button.innerHTML = originalText;
-                button.disabled = false;
-                button.style.backgroundColor = '';
-            }, 3000);
         }
     } catch (error) {
-        button.innerHTML = '❌ Error';
-        button.style.backgroundColor = '#ef4444';
+        setButtonState(btnKey, '❌ Error', '#ef4444');
         alert(`Error: ${error.message}`);
-        setTimeout(() => {
-            button.innerHTML = originalText;
-            button.disabled = false;
-            button.style.backgroundColor = '';
-        }, 3000);
     }
+    
+    setTimeout(() => setButtonState(btnKey, null), 3000);
 }
